@@ -102,6 +102,10 @@ func initConfig(configDir, cryptoKey string, isCenter bool) (*ConfigType, error)
 		return nil, err
 	}
 
+	if err := pconf.EnsureOpenGeminiDatabases(config.Pushgw); err != nil {
+		return nil, err
+	}
+
 	if config.Alert.Heartbeat.IP == "" {
 		// auto detect
 		config.Alert.Heartbeat.IP = fmt.Sprint(GetOutboundIP())

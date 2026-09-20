@@ -1436,7 +1436,7 @@ func DataBaseInit(c DBConfig, db *gorm.DB) error {
 	switch strings.ToLower(c.DBType) {
 	case "mysql":
 		return mysqlDataBaseInit(db)
-	case "postgres":
+	case "postgres", "kingbase":
 		return postgresDataBaseInit(db)
 	case "sqlite":
 		return sqliteDataBaseInit(db)

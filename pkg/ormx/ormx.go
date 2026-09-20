@@ -78,6 +78,8 @@ func createDatabase(c DBConfig, gconfig *gorm.Config) error {
 		return createMysqlDatabase(c.DSN, gconfig)
 	case "postgres":
 		return createPostgresDatabase(c.DSN, gconfig)
+	case "kingbase":
+		return createPostgresCompatibleDatabase(c.DSN, gconfig, "kingbase", false)
 	case "sqlite":
 		return createSqliteDatabase(c.DSN, gconfig)
 	default:
@@ -99,6 +101,10 @@ func createSqliteDatabase(dsn string, gconfig *gorm.Config) error {
 }
 
 func createPostgresDatabase(dsn string, gconfig *gorm.Config) error {
+	return createPostgresCompatibleDatabase(dsn, gconfig, "postgres", true)
+}
+
+func createPostgresCompatibleDatabase(dsn string, gconfig *gorm.Config, adminDatabase string, includeLocale bool) error {
 	dsnParts := strings.Split(dsn, " ")
 	dbName := ""
 	connectionWithoutDB := ""
@@ -111,9 +117,13 @@ func createPostgresDatabase(dsn string, gconfig *gorm.Config) error {
 		}
 	}
 
-	createDBQuery := fmt.Sprintf("CREATE DATABASE %s ENCODING='UTF8' LC_COLLATE='en_US.utf8' LC_CTYPE='en_US.utf8';", dbName)
+	createDBQuery := fmt.Sprintf("CREATE DATABASE %s", dbName)
+	if includeLocale {
+		createDBQuery += " ENCODING='UTF8' LC_COLLATE='en_US.utf8' LC_CTYPE='en_US.utf8'"
+	}
+	createDBQuery += ";"
 
-	tempDialector := postgres.Open(connectionWithoutDB)
+	tempDialector := postgres.Open(withAdminDatabase(connectionWithoutDB, adminDatabase))
 
 	tempDB, err := gorm.Open(tempDialector, gconfig)
 	if err != nil {
@@ -172,6 +182,8 @@ func checkDatabaseExist(c DBConfig) (bool, error) {
 		return checkMysqlDatabaseExist(c)
 	case "postgres":
 		return checkPostgresDatabaseExist(c)
+	case "kingbase":
+		return checkPostgresCompatibleDatabaseExist(c, "kingbase")
 	case "sqlite":
 		return checkSqliteDatabaseExist(c)
 	default:
@@ -190,6 +202,10 @@ func checkSqliteDatabaseExist(c DBConfig) (bool, error) {
 }
 
 func checkPostgresDatabaseExist(c DBConfig) (bool, error) {
+	return checkPostgresCompatibleDatabaseExist(c, "postgres")
+}
+
+func checkPostgresCompatibleDatabaseExist(c DBConfig, adminDatabase string) (bool, error) {
 	dsnParts := strings.Split(c.DSN, " ")
 	dbName := ""
 	dbpair := ""
@@ -199,7 +215,10 @@ func checkPostgresDatabaseExist(c DBConfig) (bool, error) {
 			dbpair = part
 		}
 	}
-	connectionStr := strings.Replace(c.DSN, dbpair, "dbname=postgres", 1)
+	connectionStr := strings.Replace(c.DSN, dbpair, "dbname="+adminDatabase, 1)
+	if dbpair == "" {
+		connectionStr = withAdminDatabase(c.DSN, adminDatabase)
+	}
 	dialector := postgres.Open(connectionStr)
 
 	gconfig := &gorm.Config{
@@ -229,6 +248,13 @@ func checkPostgresDatabaseExist(c DBConfig) (bool, error) {
 	}
 
 	return false, nil
+}
+
+func withAdminDatabase(dsn string, adminDatabase string) string {
+	if strings.Contains(dsn, "dbname=") {
+		return dsn
+	}
+	return strings.TrimSpace(dsn) + " dbname=" + adminDatabase
 }
 
 func checkMysqlDatabaseExist(c DBConfig) (bool, error) {
@@ -271,7 +297,7 @@ func genQuery(c DBConfig) string {
 	switch strings.ToLower(c.DBType) {
 	case "mysql":
 		return "SHOW DATABASES"
-	case "postgres":
+	case "postgres", "kingbase":
 		return "SELECT datname FROM pg_database"
 	case "sqlite":
 		return ""
@@ -288,7 +314,7 @@ func New(c DBConfig) (*gorm.DB, error) {
 	switch strings.ToLower(c.DBType) {
 	case "mysql":
 		dialector = mysql.Open(c.DSN)
-	case "postgres":
+	case "postgres", "kingbase":
 		dialector = postgres.Open(c.DSN)
 	case "sqlite":
 		dialector = sqlite.Open(c.DSN)
