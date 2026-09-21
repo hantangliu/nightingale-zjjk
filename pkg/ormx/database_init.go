@@ -1124,6 +1124,30 @@ func (InitPostgresDatasource) TableName() string {
 	return "datasource"
 }
 
+type InitDamengDatasource struct {
+	ID             uint64 `gorm:"primaryKey;autoIncrement"`
+	Name           string `gorm:"size:191;not null;default:'';uniqueIndex"`
+	Description    string `gorm:"size:255;not null;default:''"`
+	Category       string `gorm:"size:255;not null;default:''"`
+	PluginID       uint   `gorm:"not null;default:0"`
+	PluginType     string `gorm:"size:255;not null;default:''"`
+	PluginTypeName string `gorm:"size:255;not null;default:''"`
+	ClusterName    string `gorm:"size:255;not null;default:''"`
+	Settings       string `gorm:"type:text;not null"`
+	Status         string `gorm:"size:255;not null;default:''"`
+	HTTP           string `gorm:"size:4096;not null;default:''"`
+	Auth           string `gorm:"size:8192;not null;default:''"`
+	IsDefault      bool   `gorm:"type:tinyint;not null;default:0"`
+	CreatedAt      int64  `gorm:"not null;default:0"`
+	CreatedBy      string `gorm:"size:64;not null;default:''"`
+	UpdatedAt      int64  `gorm:"not null;default:0"`
+	UpdatedBy      string `gorm:"size:64;not null;default:''"`
+}
+
+func (InitDamengDatasource) TableName() string {
+	return "datasource"
+}
+
 type InitBuiltinCate struct {
 	ID     uint64 `gorm:"primaryKey;autoIncrement"`
 	Name   string `gorm:"size:191;not null"`
@@ -1224,6 +1248,23 @@ type InitPostgresESIndexPattern struct {
 }
 
 func (InitPostgresESIndexPattern) TableName() string {
+	return "es_index_pattern"
+}
+
+type InitDamengESIndexPattern struct {
+	ID                     uint64 `gorm:"primaryKey;autoIncrement"`
+	DatasourceID           int64  `gorm:"not null;default:0;comment:datasource id;uniqueIndex:idx_dm_es_datasource_name"`
+	Name                   string `gorm:"size:191;not null;uniqueIndex:idx_dm_es_datasource_name"`
+	TimeField              string `gorm:"size:128;not null;default:'@timestamp'"`
+	AllowHideSystemIndices int16  `gorm:"type:smallint;not null;default:0"`
+	FieldsFormat           string `gorm:"size:4096;not null;default:''"`
+	CreateAt               int64  `gorm:"default:0"`
+	CreateBy               string `gorm:"size:64;default:''"`
+	UpdateAt               int64  `gorm:"default:0"`
+	UpdateBy               string `gorm:"size:64;default:''"`
+}
+
+func (InitDamengESIndexPattern) TableName() string {
 	return "es_index_pattern"
 }
 
@@ -1419,6 +1460,19 @@ func (InitTaskHost) TableOptions() string {
 	return "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
 }
 
+type InitDamengTaskHost struct {
+	II     uint64 `gorm:"primaryKey;autoIncrement"`
+	ID     uint64 `gorm:"not null"`
+	Host   string `gorm:"size:128;not null"`
+	Status string `gorm:"size:32;not null"`
+	Stdout string `gorm:"type:text"`
+	Stderr string `gorm:"type:text"`
+}
+
+func (InitDamengTaskHost) TableName() string {
+	return "task_host_0"
+}
+
 type InitSqliteTaskHost struct {
 	II     uint64 `gorm:"primaryKey;autoIncrement"`
 	ID     uint64 `gorm:"not null;"`
@@ -1438,6 +1492,8 @@ func DataBaseInit(c DBConfig, db *gorm.DB) error {
 		return mysqlDataBaseInit(db)
 	case "postgres", "kingbase":
 		return postgresDataBaseInit(db)
+	case "dameng":
+		return damengDataBaseInit(db)
 	case "sqlite":
 		return sqliteDataBaseInit(db)
 	default:
@@ -1831,13 +1887,21 @@ func mysqlDataBaseInit(db *gorm.DB) error {
 }
 
 func postgresDataBaseInit(db *gorm.DB) error {
+	return postgresDataBaseInitWithModels(db, &InitPostgresDatasource{}, &InitPostgresESIndexPattern{}, &InitTaskHost{})
+}
+
+func damengDataBaseInit(db *gorm.DB) error {
+	return postgresDataBaseInitWithModels(db, &InitDamengDatasource{}, &InitDamengESIndexPattern{}, &InitDamengTaskHost{})
+}
+
+func postgresDataBaseInitWithModels(db *gorm.DB, datasource interface{}, esIndexPattern interface{}, taskHost interface{}) error {
 	dts := []interface{}{
 		&InitTaskMeta{},
 		&InitTaskAction{},
 		&InitTaskScheduler{},
 		&InitTaskSchedulerHealth{},
 		&InitTaskHostDoing{},
-		&InitTaskHost{},
+		taskHost,
 		&InitBoardBusiGroup{},
 		&InitBuiltinComponent{},
 		&InitpostgresBuiltinPayload{},
@@ -1847,11 +1911,11 @@ func postgresDataBaseInit(db *gorm.DB) error {
 		&InitTaskTplHost{},
 		&InitTaskRecord{},
 		&InitAlertingEngine{},
-		&InitPostgresDatasource{},
+		datasource,
 		&InitBuiltinCate{},
 		&InitNotifyTpl{},
 		&InitSSOConfig{},
-		&InitPostgresESIndexPattern{},
+		esIndexPattern,
 		&InitBuiltinMetric{},
 		&InitMetricFilter{},
 		&InitTargetBusiGroup{},
@@ -1889,7 +1953,7 @@ func postgresDataBaseInit(db *gorm.DB) error {
 
 	for i := 1; i <= 99; i++ {
 		tableName := "task_host_" + strconv.Itoa(i)
-		err := db.Table(tableName).AutoMigrate(&InitTaskHost{})
+		err := db.Table(tableName).AutoMigrate(taskHost)
 		if err != nil {
 			return err
 		}

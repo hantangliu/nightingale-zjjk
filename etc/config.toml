@@ -92,8 +92,11 @@ OpenRSA = false
 # MCPEnableWriteTools = false
 
 [DB]
-# mysql postgres kingbase sqlite
+# mysql postgres kingbase dameng sqlite
 DBType = "sqlite"
+#
+# Dameng uses the DM Go driver URL format (default port: 5236):
+# dm://SYSDBA:******@127.0.0.1:5236?schema=SYSDBA
 #
 # Kingbase uses the PostgreSQL-compatible DSN format:
 # host=127.0.0.1 port=54321 user=system password=*** dbname=n9e_v6 sslmode=disable

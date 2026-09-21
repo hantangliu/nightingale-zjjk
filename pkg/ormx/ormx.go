@@ -9,6 +9,7 @@ import (
 
 	"github.com/glebarez/sqlite"
 	mysqlDriver "github.com/go-sql-driver/mysql"
+	dameng "github.com/godoes/gorm-dameng"
 	tklog "github.com/toolkits/pkg/logger"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
@@ -80,6 +81,8 @@ func createDatabase(c DBConfig, gconfig *gorm.Config) error {
 		return createPostgresDatabase(c.DSN, gconfig)
 	case "kingbase":
 		return createPostgresCompatibleDatabase(c.DSN, gconfig, "kingbase", false)
+	case "dameng":
+		return nil
 	case "sqlite":
 		return createSqliteDatabase(c.DSN, gconfig)
 	default:
@@ -184,12 +187,36 @@ func checkDatabaseExist(c DBConfig) (bool, error) {
 		return checkPostgresDatabaseExist(c)
 	case "kingbase":
 		return checkPostgresCompatibleDatabaseExist(c, "kingbase")
+	case "dameng":
+		return checkDamengDatabaseExist(c)
 	case "sqlite":
 		return checkSqliteDatabaseExist(c)
 	default:
 		return false, fmt.Errorf("dialector(%s) not supported", c.DBType)
 	}
 
+}
+
+func checkDamengDatabaseExist(c DBConfig) (bool, error) {
+	db, err := gorm.Open(dameng.Open(c.DSN), &gorm.Config{
+		NamingStrategy: schema.NamingStrategy{
+			TablePrefix:   c.TablePrefix,
+			SingularTable: true,
+		},
+		Logger: gormLogger,
+	})
+	if err != nil {
+		return false, fmt.Errorf("failed to open Dameng database: %v", err)
+	}
+
+	sqlDB, err := db.DB()
+	if err != nil {
+		return false, fmt.Errorf("failed to get Dameng database connection: %v", err)
+	}
+	if err := sqlDB.Ping(); err != nil {
+		return false, fmt.Errorf("failed to ping Dameng database: %v", err)
+	}
+	return true, nil
 }
 
 func checkSqliteDatabaseExist(c DBConfig) (bool, error) {
@@ -316,6 +343,8 @@ func New(c DBConfig) (*gorm.DB, error) {
 		dialector = mysql.Open(c.DSN)
 	case "postgres", "kingbase":
 		dialector = postgres.Open(c.DSN)
+	case "dameng":
+		dialector = dameng.Open(c.DSN)
 	case "sqlite":
 		dialector = sqlite.Open(c.DSN)
 		sqliteUsed = true
