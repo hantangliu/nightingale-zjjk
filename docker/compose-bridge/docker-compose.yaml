@@ -3,34 +3,18 @@ networks:
     driver: bridge
 
 services:
-  mysql:
-    image: "mysql:8"
-    container_name: mysql
-    hostname: mysql
+  tendis:
+    image: "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/tencentdbforkv/tendisplus:v2.8.0"
+    container_name: tendis
+    hostname: tendis
     restart: always
     environment:
       TZ: Asia/Shanghai
-      MYSQL_ROOT_PASSWORD: 1234
-    volumes:
-      - ./mysqldata:/var/lib/mysql/
-      - ../initsql:/docker-entrypoint-initdb.d/
-      - ./etc-mysql/my.cnf:/etc/my.cnf
+      CLUSTER: "no"
     networks:
       - nightingale
     ports:
-      - "3306:3306"
-
-  redis:
-    image: "redis:6.2"
-    container_name: redis
-    hostname: redis
-    restart: always
-    environment:
-      TZ: Asia/Shanghai
-    networks:
-      - nightingale
-    ports:
-      - "6379:6379"
+      - "51002:51002"
 
   # prometheus:
   #   image: prom/prometheus
@@ -68,14 +52,14 @@ services:
       - "--loggerTimezone=Asia/Shanghai"
 
   nightingale:
-    image: flashcatcloud/nightingale:latest
+    image: swr.cn-north-4.myhuaweicloud.com/zj-base/nightingale:latest
     container_name: nightingale
     hostname: nightingale
     restart: always
     environment:
       GIN_MODE: release
       TZ: Asia/Shanghai
-      WAIT_HOSTS: mysql:3306, redis:6379
+      WAIT_HOSTS: tendis:51002
     volumes:
       - ./etc-nightingale:/app/etc
     networks:
@@ -84,8 +68,7 @@ services:
       - "17000:17000"
       - "20090:20090"
     depends_on:
-      - mysql
-      - redis
+      - tendis
       - victoriametrics
     command:
       - /app/n9e
