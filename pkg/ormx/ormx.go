@@ -126,7 +126,10 @@ func createPostgresCompatibleDatabase(dsn string, gconfig *gorm.Config, adminDat
 	}
 	createDBQuery += ";"
 
-	tempDialector := postgres.Open(withAdminDatabase(connectionWithoutDB, adminDatabase))
+	var tempDialector gorm.Dialector = postgres.Open(withAdminDatabase(connectionWithoutDB, adminDatabase))
+	if adminDatabase == "kingbase" {
+		tempDialector = newKingbaseDialector(withAdminDatabase(connectionWithoutDB, adminDatabase))
+	}
 
 	tempDB, err := gorm.Open(tempDialector, gconfig)
 	if err != nil {
@@ -341,8 +344,10 @@ func New(c DBConfig) (*gorm.DB, error) {
 	switch strings.ToLower(c.DBType) {
 	case "mysql":
 		dialector = mysql.Open(c.DSN)
-	case "postgres", "kingbase":
+	case "postgres":
 		dialector = postgres.Open(c.DSN)
+	case "kingbase":
+		dialector = newKingbaseDialector(c.DSN)
 	case "dameng":
 		dialector = dameng.Open(c.DSN)
 	case "sqlite":
