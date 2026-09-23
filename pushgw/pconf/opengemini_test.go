@@ -23,7 +23,7 @@ func TestEnsureOpenGeminiDatabases(t *testing.T) {
 
 	err := EnsureOpenGeminiDatabases(Pushgw{
 		Writers: []WriterOptions{{
-			Url:     server.URL + "/api/v1/prom/write?db=prometheus",
+			Url:     server.URL + "/api/v1/write?db=prom",
 			Timeout: 1000,
 		}},
 	})
@@ -33,13 +33,13 @@ func TestEnsureOpenGeminiDatabases(t *testing.T) {
 	if gotPath != "/query" {
 		t.Fatalf("unexpected path: %q", gotPath)
 	}
-	if gotQuery.Get("db") != "prometheus" {
+	if gotQuery.Get("db") != "prom" {
 		t.Fatalf("unexpected database: %q", gotQuery.Get("db"))
 	}
 	if gotQuery.Get("q") != "" {
 		t.Fatalf("unexpected query parameter: %q", gotQuery.Get("q"))
 	}
-	if gotForm.Get("q") != `CREATE DATABASE "prometheus"` {
+	if gotForm.Get("q") != `CREATE DATABASE "prom"` {
 		t.Fatalf("unexpected form query: %q", gotForm.Get("q"))
 	}
 }
@@ -52,7 +52,7 @@ func TestEnsureOpenGeminiDatabasesIgnoresOtherWriters(t *testing.T) {
 	defer server.Close()
 
 	err := EnsureOpenGeminiDatabases(Pushgw{
-		Writers: []WriterOptions{{Url: server.URL + "/api/v1/write"}},
+		Writers: []WriterOptions{{Url: server.URL + "/api/v1/prom/write"}},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -64,7 +64,7 @@ func TestEnsureOpenGeminiDatabasesIgnoresOtherWriters(t *testing.T) {
 
 func TestEnsureOpenGeminiDatabasesRequiresDatabase(t *testing.T) {
 	err := EnsureOpenGeminiDatabases(Pushgw{
-		Writers: []WriterOptions{{Url: "http://127.0.0.1:8086/api/v1/prom/write"}},
+		Writers: []WriterOptions{{Url: "http://127.0.0.1:8086/api/v1/write"}},
 	})
 	if err == nil || !strings.Contains(err.Error(), "db query parameter") {
 		t.Fatalf("expected missing database error, got %v", err)

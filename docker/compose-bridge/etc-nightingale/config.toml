@@ -249,7 +249,7 @@ ForceUseServerTS = true
 # Url = "http://127.0.0.1:8480/insert/0/prometheus/api/v1/write"
 # Url = "http://127.0.0.1:9090/api/v1/write"
 # OpenGemini remote write (create the database first):
-# Url = "http://192.168.1.233:8086/api/v1/prom/write?db=prometheus"
+# Url = "http://192.168.1.233:8086/api/v1/write?db=prom"
 # Basic auth username
 # BasicAuthUser = ""
 # Basic auth password

@@ -98,7 +98,7 @@ ForceUseServerTS = true
 
 [[Pushgw.Writers]] 
 # OpenGemini example (create the database first):
-# Url = "http://192.168.1.233:8086/api/v1/prom/write?db=prometheus"
+# Url = "http://192.168.1.233:8086/api/v1/write?db=prom"
 Url = "http://127.0.0.1:9090/api/v1/write"
 # Basic auth username
 BasicAuthUser = ""

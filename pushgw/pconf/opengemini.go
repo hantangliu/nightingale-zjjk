@@ -36,7 +36,7 @@ func openGeminiDatabase(rawURL string) (string, string, bool, error) {
 	if parsed.Scheme == "" || parsed.Host == "" {
 		return "", "", false, fmt.Errorf("writer URL %q must include scheme and host", rawURL)
 	}
-	if parsed.Path != "/api/v1/prom/write" {
+	if parsed.Path != "/api/v1/write" {
 		return "", "", false, nil
 	}
 
