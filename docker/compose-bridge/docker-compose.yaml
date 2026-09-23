@@ -11,45 +11,35 @@ services:
     environment:
       TZ: Asia/Shanghai
       CLUSTER: "no"
+      REDIS_PASSWORD: "test123*6"
     networks:
       - nightingale
     ports:
       - "51002:51002"
 
-  # prometheus:
-  #   image: prom/prometheus
-  #   container_name: prometheus
-  #   hostname: prometheus
-  #   restart: always
-  #   environment:
-  #     TZ: Asia/Shanghai
-  #   volumes:
-  #     - ./etc-prometheus:/etc/prometheus
-  #   command:
-  #     - "--config.file=/etc/prometheus/prometheus.yml"
-  #     - "--storage.tsdb.path=/prometheus"
-  #     - "--web.console.libraries=/usr/share/prometheus/console_libraries"
-  #     - "--web.console.templates=/usr/share/prometheus/consoles"
-  #     - "--enable-feature=remote-write-receiver"
-  #     - "--query.lookback-delta=2m"
-  #   networks:
-  #     - nightingale
-  #   ports:
-  #     - "9090:9090"
 
-  victoriametrics:
-    image: victoriametrics/victoria-metrics:v1.79.12
-    container_name: victoriametrics
-    hostname: victoriametrics
+#  victoriametrics:
+#    image: victoriametrics/victoria-metrics:v1.79.12
+#    container_name: victoriametrics
+#    hostname: victoriametrics
+#    restart: always
+#    environment:
+#      TZ: Asia/Shanghai
+#    ports:
+#      - "8428:8428"
+#    networks:
+#      - nightingale
+#    command:
+#      - "--loggerTimezone=Asia/Shanghai"
+  opengeminidb:
+    image: opengeminidb/opengemini-server:latest
+    container_name: opengeminidb
+    hostname: opengeminidb
     restart: always
     environment:
       TZ: Asia/Shanghai
-    ports:
-      - "8428:8428"
     networks:
       - nightingale
-    command:
-      - "--loggerTimezone=Asia/Shanghai"
 
   nightingale:
     image: swr.cn-north-4.myhuaweicloud.com/zj-base/nightingale:latest
@@ -69,12 +59,12 @@ services:
       - "20090:20090"
     depends_on:
       - tendis
-      - victoriametrics
+      - opengeminidb
     command:
       - /app/n9e
 
   categraf:
-    image: "flashcatcloud/categraf:latest"
+    image: "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/flashcatcloud/categraf:v0.5.6"
     container_name: "categraf"
     hostname: "categraf01"
     restart: always
